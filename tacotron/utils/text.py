@@ -4,10 +4,12 @@ from . import cleaners
 from .symbols import eng_symbols, kor_symbols
 from hparams import hparams
 # Mappings from symbol to numeric ID and vice versa:
-symbols = ""
+
 _symbol_to_id = {}
 _id_to_symbol = {}
 cleaner_names = hparams.cleaners
+if cleaner_names == "english_cleaners": symbols = eng_symbols
+elif cleaner_names == "korean_cleaners": symbols = kor_symbols
 
 # Regular expression matching text enclosed in curly braces:
 _curly_re = re.compile(r'(.*?)\{(.+?)\}(.*)')
