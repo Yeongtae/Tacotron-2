@@ -1,3 +1,4 @@
+#-*- coding: utf-8 -*-
 import numpy as np
 import tensorflow as tf
 
@@ -5,7 +6,7 @@ import tensorflow as tf
 hparams = tf.contrib.training.HParams(
 	# Comma-separated list of cleaners to run on text prior to training and eval. For non-English
 	# text, you may want to use "basic_cleaners" or "transliteration_cleaners".
-	cleaners='english_cleaners',
+	cleaners='korean_cleaners',
 
 
 	#If you only have 1 GPU or want to use only one GPU, please set num_gpus=0 and specify the GPU idx on run. example:
@@ -15,7 +16,7 @@ hparams = tf.contrib.training.HParams(
 	#The hparams arguments can be directly modified on this hparams.py file instead of being specified on run if preferred!
 
 	#If one wants to train both Tacotron and WaveNet in parallel (provided WaveNet will be trained on True mel spectrograms), one needs to specify different GPU idxes.
-	#example Tacotron+WaveNet on a machine with 4 or more GPUs. Two GPUs for each model: 
+	#example Tacotron+WaveNet on a machine with 4 or more GPUs. Two GPUs for each model:
 		# CUDA_VISIBLE_DEVICES=0,1 python train.py --model='Tacotron' --hparams='tacotron_num_gpus=2'
 		# Cuda_VISIBLE_DEVICES=2,3 python train.py --model='WaveNet' --hparams='wavenet_num_gpus=2'
 
@@ -35,7 +36,7 @@ hparams = tf.contrib.training.HParams(
 	#Synthesis also uses the following hardware parameters for multi-GPU parallel synthesis.
 	tacotron_num_gpus = 1, #Determines the number of gpus in use for Tacotron training.
 	wavenet_num_gpus = 1, #Determines the number of gpus in use for WaveNet training.
-	split_on_cpu = True, #Determines whether to split data on CPU or on first GPU. This is automatically True when more than 1 GPU is used. 
+	split_on_cpu = True, #Determines whether to split data on CPU or on first GPU. This is automatically True when more than 1 GPU is used.
 		#(Recommend: False on slow CPUs/Disks, True otherwise for small speed boost)
 	###########################################################################################################################################
 
@@ -54,7 +55,7 @@ hparams = tf.contrib.training.HParams(
 	#		b- num_freq = (n_fft / 2) + 1. For the tuto example: num_freq = 2048 / 2 + 1 = 1024 + 1 = 1025.
 	#		c- For WaveNet, upsample_scales products must be equal to hop_size. For the tuto example: upsample_scales=[15, 20] where 15 * 20 = 300
 	#			it is also possible to use upsample_scales=[3, 4, 5, 5] instead. One must only keep in mind that upsample_kernel_size[0] = 2*upsample_scales[0]
-	#			so the training segments should be long enough (2.8~3x upsample_scales[0] * hop_size or longer) so that the first kernel size can see the middle 
+	#			so the training segments should be long enough (2.8~3x upsample_scales[0] * hop_size or longer) so that the first kernel size can see the middle
 	#			of the samples efficiently. The length of WaveNet training segments is under the parameter "max_time_steps".
 	#	5- Finally comes the silence trimming. This very much data dependent, so I suggest trying preprocessing (or part of it, ctrl-C to stop), then use the
 	#		.ipynb provided in the repo to listen to some inverted mel/linear spectrograms. That will first give you some idea about your above parameters, and
@@ -93,7 +94,7 @@ hparams = tf.contrib.training.HParams(
 	signal_normalization = True, #Whether to normalize mel spectrograms to some predefined range (following below parameters)
 	allow_clipping_in_normalization = True, #Only relevant if mel_normalization = True
 	symmetric_mels = True, #Whether to scale the data to be symmetric around 0. (Also multiplies the output range by 2, faster and cleaner convergence)
-	max_abs_value = 4., #max absolute value of data. If symmetric, data will be [-max, max] else [0, max] (Must not be too big to avoid gradient explosion, 
+	max_abs_value = 4., #max absolute value of data. If symmetric, data will be [-max, max] else [0, max] (Must not be too big to avoid gradient explosion,
 																										  #not too small for fast convergence)
 	normalize_for_wavenet = True, #whether to rescale to [0, 1] for wavenet. (better audio quality)
 	clip_for_wavenet = True, #whether to clip [-max, max] before training/synthesizing with wavenet (better audio quality)
@@ -142,7 +143,7 @@ hparams = tf.contrib.training.HParams(
 	#"Monotonic" constraint forces the model to only look at the forwards attention_win_size steps.
 	#"Window" allows the model to look at attention_win_size neighbors, both forward and backward steps.
 	synthesis_constraint = False,  #Whether to use attention windows constraints in synthesis only (Useful for long utterances synthesis)
-	synthesis_constraint_type = 'window', #can be in ('window', 'monotonic'). 
+	synthesis_constraint_type = 'window', #can be in ('window', 'monotonic').
 	attention_win_size = 7, #Side of the window. Current step does not count. If mode is window and attention_win_size is not pair, the 1 extra is provided to backward part of the window.
 
 	#Decoder
@@ -182,8 +183,8 @@ hparams = tf.contrib.training.HParams(
 	# discretized mixture of logistic distributions output, otherwise one-hot
 	# input and softmax output are assumed.
 	#Model general type
-	input_type="raw", #Raw has better quality but harder to train. mulaw-quantize is easier to train but has lower quality.
-	quantize_channels=2**16,  # 65536 (16-bit) (raw) or 256 (8-bit) (mulaw or mulaw-quantize) // number of classes = 256 <=> mu = 255
+	input_type="mulaw-quantize", #Raw has better quality but harder to train. mulaw-quantize is easier to train but has lower quality.
+	quantize_channels=256,  # 65536 (16-bit) (raw) or 256 (8-bit) (mulaw or mulaw-quantize) // number of classes = 256 <=> mu = 255
 	use_bias = True, #Whether to use bias in convolutional layers of the Wavenet
 	legacy = True, #Whether to use legacy mode: Multiply all skip outputs but the first one with sqrt(0.5) (True for more early training stability, especially for large models)
 	residual_legacy = True, #Whether to scale residual blocks outputs by a factor of sqrt(0.5) (True for input variance preservation early in training and better overall stability)
@@ -339,29 +340,8 @@ hparams = tf.contrib.training.HParams(
 	#Eval sentences (if no eval text file was specified during synthesis, these sentences are used for eval)
 	sentences = [
 	# From July 8, 2017 New York Times:
-	'Scientists at the CERN laboratory say they have discovered a new particle.',
-	'There\'s a way to measure the acute emotional intelligence that has never gone out of style.',
-	'President Trump met with other leaders at the Group of 20 conference.',
-	'The Senate\'s bill to repeal and replace the Affordable Care Act is now imperiled.',
-	# From Google's Tacotron example page:
-	'Generative adversarial network or variational auto-encoder.',
-	'Basilar membrane and otolaryngology are not auto-correlations.',
-	'He has read the whole thing.',
-	'He reads books.',
-	'He thought it was time to present the present.',
-	'Thisss isrealy awhsome.',
-	'Punctuation sensitivity, is working.',
-	'Punctuation sensitivity is working.',
-	"Peter Piper picked a peck of pickled peppers. How many pickled peppers did Peter Piper pick?",
-	"She sells sea-shells on the sea-shore. The shells she sells are sea-shells I'm sure.",
-	"Tajima Airport serves Toyooka.",
-	#From The web (random long utterance)
-	# 'On offering to help the blind man, the man who then stole his car, had not, at that precise moment, had any evil intention, quite the contrary, \
-	# what he did was nothing more than obey those feelings of generosity and altruism which, as everyone knows, \
-	# are the two best traits of human nature and to be found in much more hardened criminals than this one, a simple car-thief without any hope of advancing in his profession, \
-	# exploited by the real owners of this enterprise, for it is they who take advantage of the needs of the poor.',
-	# A final Thank you note!
-	'Thank you so much for your support!',
+	'비가 하루종일 끊임없이 내렸다.',
+	'딸기 타르트는 내가 제일 좋아하는 음식이야.'
 	],
 
 	#Wavenet Debug
