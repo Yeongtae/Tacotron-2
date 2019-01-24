@@ -114,8 +114,8 @@ def _process_utterance(mel_dir, linear_dir, wav_dir, index, wav_path, text, hpar
 		constant_values = 0.
 		out_dtype = np.float32
 
-	# zero padding to prevent that model fail to predict final character.
-	out = np.append(out, [0.]*hparams.hop_size*silence_pad_length)
+	# # zero padding to prevent that model fail to predict final character.
+	# out = np.append(out, [0.]*hparams.hop_size*silence_pad_length)
 
 	# Compute the mel scale spectrogram from the wav
 	mel_spectrogram = audio.melspectrogram(preem_wav, hparams).astype(np.float32)
