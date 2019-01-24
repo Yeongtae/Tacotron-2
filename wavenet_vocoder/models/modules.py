@@ -627,11 +627,12 @@ class SubPixelConvolution(tf.layers.Conv2D):
 		'''Nearest Neighbor Upsample (Checkerboard free) init kernel size
 		'''
 		overlap = kernel_size[1] // strides[1]
+		print(kernel_size[1], strides[1], overlap)
 		init_kernel = np.zeros(kernel_size, dtype=np.float32)
 		i = kernel_size[0] // 2
 		j = [kernel_size[1] // 2 - 1, kernel_size[1] // 2] if kernel_size[1] % 2 == 0 else [kernel_size[1] // 2]
 		for j_i in j:
-			init_kernel[i, j_i] = 1. / overlap if kernel_size[1] % 2 == 0 else 1.
+			init_kernel[i, j_i] = 1. / overlap if kernel_size[1] % 2 == 0 and overlap is not 0 else 1.
 
 		init_kernel = np.tile(np.expand_dims(init_kernel, 3), [1, 1, 1, filters])
 
@@ -673,11 +674,12 @@ class ResizeConvolution(tf.layers.Conv2D):
 		'''Nearest Neighbor Upsample (Checkerboard free) init kernel size
 		'''
 		overlap = kernel_size[1] // strides[1]
+		print(kernel_size[1], strides[1], overlap)
 		init_kernel = np.zeros(kernel_size, dtype=np.float32)
 		i = kernel_size[0] // 2
 		j = [kernel_size[1] // 2 - 1, kernel_size[1] // 2] if kernel_size[1] % 2 == 0 else [kernel_size[1] // 2]
 		for j_i in j:
-			init_kernel[i, j_i] = 1. / overlap if kernel_size[1] % 2 == 0 else 1.
+			init_kernel[i, j_i] = 1. / overlap if kernel_size[1] % 2 == 0 and overlap is not 0 else 1.
 
 		return init_kernel * (self.NN_scaler)**(1/self.up_layers)
 
