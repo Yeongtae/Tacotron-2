@@ -8,7 +8,7 @@ sr = 22050
 max_wav_value=32768.0
 trim_fft_size = 1024
 trim_hop_size = 256
-trim_top_db = 23
+trim_top_db = 40
 
 def preprocess_audio(file_list, dataset_prefix, silence_audio_size):
     for F in file_list:
@@ -34,6 +34,7 @@ if __name__ == "__main__":
     """
     usage
     python preprocess_audio.py -f=namgung-highquality/metadata.csv -p=namgung-highquality/wavs -s=3
+    python preprocess_audio.py -f=namgung-old/metadata.csv -p=namgung-old/wavs -s=0
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file_list', type=str,
