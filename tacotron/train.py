@@ -14,7 +14,7 @@ from tacotron.feeder import Feeder
 from tacotron.models import create_model
 from tacotron.utils import ValueWindow, plot
 from tacotron.utils.text import sequence_to_text
-from tacotron.utils.symbols import symbols
+from tacotron.utils.text import symbols
 from tqdm import tqdm
 
 log = infolog.log
