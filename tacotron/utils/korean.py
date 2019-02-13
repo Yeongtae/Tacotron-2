@@ -4,7 +4,7 @@ import re
 import os
 import ast
 import json
-from jamo import hangul_to_jamo, h2j, j2h
+from jamo import hangul_to_jamo, h2j, j2h, hcj_to_jamo, is_hcj
 from jamo.jamo import _jamo_char_to_hcj
 
 from .ko_dictionary import english_dictionary, etc_dictionary
@@ -180,8 +180,8 @@ def tokenize(text, as_id=False, symbol_type=1, debug=False):
 
     text = normalize(text)
     pre_tokens = list(hangul_to_jamo(text))
+    pre_tokens = [hcj_to_jamo(_, "lead") if is_hcj(_) else _ for _ in pre_tokens]
     tokens = []
-
     if symbol_type == 1:
         if debug:
             print(char_to_id_1)
@@ -400,6 +400,7 @@ if __name__ == "__main__":
 
     test_normalize("JTBC는 JTBCs를 DY는 A가 Absolute")
     test_normalize("오늘(13일) 101마리 강아지가")
+    test_normalize('')
     #test_normalize('"저돌"(猪突) 입니다.')
     #test_normalize('비대위원장이 지난 1월 이런 말을 했습니다. “난 그냥 산돼지처럼 돌파하는 스타일이다”')
     test_normalize("지금은 -12.35%였고 종류는 5가지와 19가지, 그리고 55가지였다")
