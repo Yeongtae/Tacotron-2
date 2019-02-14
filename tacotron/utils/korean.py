@@ -4,7 +4,7 @@ import re
 import os
 import ast
 import json
-from jamo import hangul_to_jamo, h2j, j2h, hcj_to_jamo, is_hangul_char, is_hcj
+from jamo import hangul_to_jamo, h2j, j2h, hcj_to_jamo, is_hcj
 from jamo.jamo import _jamo_char_to_hcj
 
 from .ko_dictionary import english_dictionary, etc_dictionary
