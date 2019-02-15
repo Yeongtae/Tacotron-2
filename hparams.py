@@ -1,3 +1,4 @@
+#-*- coding: utf-8 -*-
 import numpy as np
 import tensorflow as tf
 
@@ -5,7 +6,7 @@ import tensorflow as tf
 hparams = tf.contrib.training.HParams(
 	# Comma-separated list of cleaners to run on text prior to training and eval. For non-English
 	# text, you may want to use "basic_cleaners" or "transliteration_cleaners".
-	cleaners='english_cleaners',
+	cleaners='korean_cleaners',
 
 
 	#If you only have 1 GPU or want to use only one GPU, please set num_gpus=0 and specify the GPU idx on run. example:
@@ -15,7 +16,7 @@ hparams = tf.contrib.training.HParams(
 	#The hparams arguments can be directly modified on this hparams.py file instead of being specified on run if preferred!
 
 	#If one wants to train both Tacotron and WaveNet in parallel (provided WaveNet will be trained on True mel spectrograms), one needs to specify different GPU idxes.
-	#example Tacotron+WaveNet on a machine with 4 or more GPUs. Two GPUs for each model: 
+	#example Tacotron+WaveNet on a machine with 4 or more GPUs. Two GPUs for each model:
 		# CUDA_VISIBLE_DEVICES=0,1 python train.py --model='Tacotron' --hparams='tacotron_num_gpus=2'
 		# Cuda_VISIBLE_DEVICES=2,3 python train.py --model='WaveNet' --hparams='wavenet_num_gpus=2'
 
@@ -35,7 +36,7 @@ hparams = tf.contrib.training.HParams(
 	#Synthesis also uses the following hardware parameters for multi-GPU parallel synthesis.
 	tacotron_num_gpus = 1, #Determines the number of gpus in use for Tacotron training.
 	wavenet_num_gpus = 1, #Determines the number of gpus in use for WaveNet training.
-	split_on_cpu = True, #Determines whether to split data on CPU or on first GPU. This is automatically True when more than 1 GPU is used. 
+	split_on_cpu = True, #Determines whether to split data on CPU or on first GPU. This is automatically True when more than 1 GPU is used.
 		#(Recommend: False on slow CPUs/Disks, True otherwise for small speed boost)
 	###########################################################################################################################################
 
@@ -54,7 +55,7 @@ hparams = tf.contrib.training.HParams(
 	#		b- num_freq = (n_fft / 2) + 1. For the tuto example: num_freq = 2048 / 2 + 1 = 1024 + 1 = 1025.
 	#		c- For WaveNet, upsample_scales products must be equal to hop_size. For the tuto example: upsample_scales=[15, 20] where 15 * 20 = 300
 	#			it is also possible to use upsample_scales=[3, 4, 5, 5] instead. One must only keep in mind that upsample_kernel_size[0] = 2*upsample_scales[0]
-	#			so the training segments should be long enough (2.8~3x upsample_scales[0] * hop_size or longer) so that the first kernel size can see the middle 
+	#			so the training segments should be long enough (2.8~3x upsample_scales[0] * hop_size or longer) so that the first kernel size can see the middle
 	#			of the samples efficiently. The length of WaveNet training segments is under the parameter "max_time_steps".
 	#	5- Finally comes the silence trimming. This very much data dependent, so I suggest trying preprocessing (or part of it, ctrl-C to stop), then use the
 	#		.ipynb provided in the repo to listen to some inverted mel/linear spectrograms. That will first give you some idea about your above parameters, and
@@ -67,7 +68,7 @@ hparams = tf.contrib.training.HParams(
 
 	#train samples of lengths between 3sec and 14sec are more than enough to make a model capable of generating consistent speech.
 	clip_mels_length = True, #For cases of OOM (Not really recommended, only use if facing unsolvable OOM errors, also consider clipping your samples to smaller chunks)
-	max_mel_frames = 1000,  #Only relevant when clip_mels_length = True, please only use after trying output_per_steps=3 and still getting OOM errors.
+	max_mel_frames = 900,  #Only relevant when clip_mels_length = True, please only use after trying output_per_steps=3 and still getting OOM errors.
 
 	# Use LWS (https://github.com/Jonathan-LeRoux/lws) for STFT and phase reconstruction
 	# It's preferred to set True to use with https://github.com/r9y9/wavenet_vocoder
@@ -93,7 +94,7 @@ hparams = tf.contrib.training.HParams(
 	signal_normalization = True, #Whether to normalize mel spectrograms to some predefined range (following below parameters)
 	allow_clipping_in_normalization = True, #Only relevant if mel_normalization = True
 	symmetric_mels = True, #Whether to scale the data to be symmetric around 0. (Also multiplies the output range by 2, faster and cleaner convergence)
-	max_abs_value = 4., #max absolute value of data. If symmetric, data will be [-max, max] else [0, max] (Must not be too big to avoid gradient explosion, 
+	max_abs_value = 4., #max absolute value of data. If symmetric, data will be [-max, max] else [0, max] (Must not be too big to avoid gradient explosion,
 																										  #not too small for fast convergence)
 	normalize_for_wavenet = True, #whether to rescale to [0, 1] for wavenet. (better audio quality)
 	clip_for_wavenet = True, #whether to clip [-max, max] before training/synthesizing with wavenet (better audio quality)
@@ -113,6 +114,7 @@ hparams = tf.contrib.training.HParams(
 	#Griffin Lim
 	power = 1.5, #Only used in G&L inversion, usually values between 1.2 and 1.5 are a good choice.
 	griffin_lim_iters = 60, #Number of G&L iterations, typically 30 is enough but we use 60 to ensure convergence.
+	GL_on_GPU = True, #Whether to use G&L GPU version as part of tensorflow graph. (Usually much faster than CPU but slightly worse quality too).
 	###########################################################################################################################################
 
 	#Tacotron
@@ -121,6 +123,7 @@ hparams = tf.contrib.training.HParams(
 	stop_at_any = True, #Determines whether the decoder should stop when predicting <stop> to any frame or to all of them (True works pretty well)
 	batch_norm_position = 'after', #Can be in ('before', 'after'). Determines whether we use batch norm before or after the activation function (relu). Matter for debate.
 	clip_outputs = True, #Whether to clip spectrograms to T2_output_range (even in loss computation). ie: Don't penalize model for exceeding output range and bring back to borders.
+	lower_bound_decay = 0.1, #Small regularizer for noise synthesis by adding small range of penalty for silence regions. Set to 0 to clip in Tacotron range.
 
 	#Input parameters
 	embedding_dim = 512, #dimension of embedding space
@@ -142,7 +145,7 @@ hparams = tf.contrib.training.HParams(
 	#"Monotonic" constraint forces the model to only look at the forwards attention_win_size steps.
 	#"Window" allows the model to look at attention_win_size neighbors, both forward and backward steps.
 	synthesis_constraint = False,  #Whether to use attention windows constraints in synthesis only (Useful for long utterances synthesis)
-	synthesis_constraint_type = 'window', #can be in ('window', 'monotonic'). 
+	synthesis_constraint_type = 'window', #can be in ('window', 'monotonic').
 	attention_win_size = 7, #Side of the window. Current step does not count. If mode is window and attention_win_size is not pair, the 1 extra is provided to backward part of the window.
 
 	#Decoder
@@ -182,8 +185,8 @@ hparams = tf.contrib.training.HParams(
 	# discretized mixture of logistic distributions output, otherwise one-hot
 	# input and softmax output are assumed.
 	#Model general type
-	input_type="raw", #Raw has better quality but harder to train. mulaw-quantize is easier to train but has lower quality.
-	quantize_channels=2**16,  # 65536 (16-bit) (raw) or 256 (8-bit) (mulaw or mulaw-quantize) // number of classes = 256 <=> mu = 255
+	input_type="mulaw-quantize", #Raw has better quality but harder to train. mulaw-quantize is easier to train but has lower quality.
+	quantize_channels=256,  # 65536 (16-bit) (raw) or 256 (8-bit) (mulaw or mulaw-quantize) // number of classes = 256 <=> mu = 255
 	use_bias = True, #Whether to use bias in convolutional layers of the Wavenet
 	legacy = True, #Whether to use legacy mode: Multiply all skip outputs but the first one with sqrt(0.5) (True for more early training stability, especially for large models)
 	residual_legacy = True, #Whether to scale residual blocks outputs by a factor of sqrt(0.5) (True for input variance preservation early in training and better overall stability)
@@ -193,11 +196,11 @@ hparams = tf.contrib.training.HParams(
 	log_scale_min=float(np.log(1e-14)), #Mixture of logistic distributions minimal log scale
 	log_scale_min_gauss = float(np.log(1e-7)), #Gaussian distribution minimal allowed log scale
 	#Loss type
-	cdf_loss = True, #Whether to use CDF loss in Gaussian modeling. Advantages: non-negative loss term and more training stability. (Automatically True for MoL)
+	cdf_loss = False, #Whether to use CDF loss in Gaussian modeling. Advantages: non-negative loss term and more training stability. (Automatically True for MoL)
 
 	#model parameters
 	#To use Gaussian distribution as output distribution instead of mixture of logistics, set "out_channels = 2" instead of "out_channels = 10 * 3". (UNDER TEST)
-	out_channels = 2, #This should be equal to quantize channels when input type is 'mulaw-quantize' else: num_distributions * 3 (prob, mean, log_scale).
+	out_channels = 256, #This should be equal to quantize channels when input type is 'mulaw-quantize' else: num_distributions * 3 (prob, mean, log_scale).
 	layers = 20, #Number of dilated convolutions (Default: Simplified Wavenet of Tacotron-2 paper)
 	stacks = 2, #Number of dilated convolution stacks (Default: Simplified Wavenet of Tacotron-2 paper)
 	residual_channels = 128, #Number of residual block input/output channels.
@@ -207,17 +210,17 @@ hparams = tf.contrib.training.HParams(
 
 	#Upsampling parameters (local conditioning)
 	cin_channels = 80, #Set this to -1 to disable local conditioning, else it must be equal to num_mels!!
-	upsample_conditional_features = True, #Whether to repeat conditional features or upsample them (The latter is recommended)
-	#Upsample types: ('1D', '2D', 'Resize', 'SubPixel')
+	#Upsample types: ('1D', '2D', 'Resize', 'SubPixel', 'NearestNeighbor')
 	#All upsampling initialization/kernel_size are chosen to omit checkerboard artifacts as much as possible. (Resize is designed to omit that by nature).
 	#To be specific, all initial upsample weights/biases (when NN_init=True) ensure that the upsampling layers act as a "Nearest neighbor upsample" of size "hop_size" (checkerboard free).
 	#1D spans all frequency bands for each frame (channel-wise) while 2D spans "freq_axis_kernel_size" bands at a time. Both are vanilla transpose convolutions.
 	#Resize is a 2D convolution that follows a Nearest Neighbor (NN) resize. For reference, this is: "NN resize->convolution".
-	#Finally, SubPixel (2D) is the ICNR version (initialized to be equivalent to "convolution->NN resize") of Sub-Pixel convolutions. also called "checkered artifact free sub-pixel conv".
-	upsample_type = 'SubPixel', #Type of the upsampling deconvolution. Can be ('1D' or '2D', 'Resize', 'SubPixel').
+	#SubPixel (2D) is the ICNR version (initialized to be equivalent to "convolution->NN resize") of Sub-Pixel convolutions. also called "checkered artifact free sub-pixel conv".
+	#Finally, NearestNeighbor is a non-trainable upsampling layer that just expands each frame (or "pixel") to the equivalent hop size. Ignores all upsampling parameters.
+	upsample_type = 'SubPixel', #Type of the upsampling deconvolution. Can be ('1D' or '2D', 'Resize', 'SubPixel' or simple 'NearestNeighbor').
 	upsample_activation = 'Relu', #Activation function used during upsampling. Can be ('LeakyRelu', 'Relu' or None)
-	upsample_scales = [5, 5, 11], #prod(upsample_scales) should be equal to hop_size
-	freq_axis_kernel_size = 2, #Only used for 2D upsampling types. This is the number of requency bands that are spanned at a time for each frame.
+	upsample_scales = [11, 25], #prod(upsample_scales) should be equal to hop_size
+	freq_axis_kernel_size = 3, #Only used for 2D upsampling types. This is the number of requency bands that are spanned at a time for each frame.
 	leaky_alpha = 0.4, #slope of the negative portion of LeakyRelu (LeakyRelu: y=x if x>0 else y=alpha * x)
 	NN_init = True, #Determines whether we want to initialize upsampling kernels/biases in a way to ensure upsample is initialize to Nearest neighbor upsampling. (Mostly for debug)
 	NN_scaler = 0.3, #Determines the initial Nearest Neighbor upsample values scale. i.e: upscaled_input_values = input_values * NN_scaler (1. to disable)
@@ -240,7 +243,7 @@ hparams = tf.contrib.training.HParams(
 	tacotron_swap_with_cpu = False, #Whether to use cpu as support to gpu for decoder computation (Not recommended: may cause major slowdowns! Only use when critical!)
 
 	#train/test split ratios, mini-batches sizes
-	tacotron_batch_size = 32, #number of training samples on each training steps
+	tacotron_batch_size = 64, #number of training samples on each training steps
 	#Tacotron Batch synthesis supports ~16x the training batch size (no gradients during testing). 
 	#Training Tacotron with unmasked paddings makes it aware of them, which makes synthesis times different from training. We thus recommend masking the encoder.
 	tacotron_synthesis_batch_size = 1, #DO NOT MAKE THIS BIGGER THAN 1 IF YOU DIDN'T TRAIN TACOTRON WITH "mask_encoder=True"!!
@@ -250,7 +253,7 @@ hparams = tf.contrib.training.HParams(
 	#Learning rate schedule
 	tacotron_decay_learning_rate = True, #boolean, determines if the learning rate will follow an exponential decay
 	tacotron_start_decay = 40000, #Step at which learning decay starts
-	tacotron_decay_steps = 48000, #Determines the learning rate decay slope (UNDER TEST)
+	tacotron_decay_steps = 18000, #Determines the learning rate decay slope (UNDER TEST)
 	tacotron_decay_rate = 0.5, #learning rate decay rate (UNDER TEST)
 	tacotron_initial_learning_rate = 1e-3, #starting learning rate
 	tacotron_final_learning_rate = 1e-4, #minimal learning rate
@@ -261,7 +264,7 @@ hparams = tf.contrib.training.HParams(
 	tacotron_adam_epsilon = 1e-6, #AdamOptimizer Epsilon parameter
 
 	#Regularization parameters
-	tacotron_reg_weight = 1e-7, #regularization weight (for L2 regularization)
+	tacotron_reg_weight = 1e-6, #regularization weight (for L2 regularization)
 	tacotron_scale_regularization = False, #Whether to rescale regularization weight to adapt for outputs range (used when reg_weight is high and biasing the model)
 	tacotron_zoneout_rate = 0.1, #zoneout rate for all LSTM cells in the network
 	tacotron_dropout_rate = 0.5, #dropout rate for all convolutional layers + prenet
@@ -296,7 +299,7 @@ hparams = tf.contrib.training.HParams(
 	wavenet_swap_with_cpu = False, #Whether to use cpu as support to gpu for synthesis computation (while loop).(Not recommended: may cause major slowdowns! Only use when critical!)
 
 	#train/test split ratios, mini-batches sizes
-	wavenet_batch_size = 8, #batch size used to train wavenet.
+	wavenet_batch_size = 16, #batch size used to train wavenet.
 	#During synthesis, there is no max_time_steps limitation so the model can sample much longer audio than 8k(or 13k) steps. (Audio can go up to 500k steps, equivalent to ~21sec on 24kHz)
 	#Usually your GPU can handle ~2x wavenet_batch_size during synthesis for the same memory amount during training (because no gradients to keep and ops to register for backprop)
 	wavenet_synthesis_batch_size = 10 * 2, #This ensure that wavenet synthesis goes up to 4x~8x faster when synthesizing multiple sentences. Watch out for OOM with long audios.
@@ -339,29 +342,15 @@ hparams = tf.contrib.training.HParams(
 	#Eval sentences (if no eval text file was specified during synthesis, these sentences are used for eval)
 	sentences = [
 	# From July 8, 2017 New York Times:
-	'Scientists at the CERN laboratory say they have discovered a new particle.',
-	'There\'s a way to measure the acute emotional intelligence that has never gone out of style.',
-	'President Trump met with other leaders at the Group of 20 conference.',
-	'The Senate\'s bill to repeal and replace the Affordable Care Act is now imperiled.',
-	# From Google's Tacotron example page:
-	'Generative adversarial network or variational auto-encoder.',
-	'Basilar membrane and otolaryngology are not auto-correlations.',
-	'He has read the whole thing.',
-	'He reads books.',
-	'He thought it was time to present the present.',
-	'Thisss isrealy awhsome.',
-	'Punctuation sensitivity, is working.',
-	'Punctuation sensitivity is working.',
-	"Peter Piper picked a peck of pickled peppers. How many pickled peppers did Peter Piper pick?",
-	"She sells sea-shells on the sea-shore. The shells she sells are sea-shells I'm sure.",
-	"Tajima Airport serves Toyooka.",
-	#From The web (random long utterance)
-	# 'On offering to help the blind man, the man who then stole his car, had not, at that precise moment, had any evil intention, quite the contrary, \
-	# what he did was nothing more than obey those feelings of generosity and altruism which, as everyone knows, \
-	# are the two best traits of human nature and to be found in much more hardened criminals than this one, a simple car-thief without any hope of advancing in his profession, \
-	# exploited by the real owners of this enterprise, for it is they who take advantage of the needs of the poor.',
-	# A final Thank you note!
-	'Thank you so much for your support!',
+	'비가 하루종일 끊임없이 내렸다.',
+	'딸기 타르트는 내가 제일 좋아하는 음식이야.',
+	'저 오늘 메이크업 했어요.',
+	'제목이 왜 노잼이에요?',
+	'저도 사랑해요. 안녕.',
+	'불멸의 법사님, 오늘도 놀러 왔네요?',
+	'오후 3시네요. 식사는 하셨나요?',
+	'날씨도 좋은데 레이드 하실래요?',
+
 	],
 
 	#Wavenet Debug

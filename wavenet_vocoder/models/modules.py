@@ -520,6 +520,22 @@ class ResidualConv1DGLU(tf.keras.layers.Wrapper):
 				x = (x + residual)
 			return x, s, queue
 
+
+class NearestNeighborUpsample:
+	def __init__(self, strides):
+		#Save upsample params
+		self.resize_strides = strides
+
+	def __call__(self, inputs):
+		#inputs are supposed [batch_size, freq, time_steps, channels]
+		outputs = tf.image.resize_images(
+			inputs,
+			size=[inputs.shape[1] * self.resize_strides[0], tf.shape(inputs)[2] * self.resize_strides[1]],
+			method=1) #BILINEAR = 0, NEAREST_NEIGHBOR = 1, BICUBIC = 2, AREA = 3
+
+		return outputs
+
+
 class SubPixelConvolution(tf.layers.Conv2D):
 	'''Sub-Pixel Convolutions are vanilla convolutions followed by Periodic Shuffle.
 
@@ -627,11 +643,12 @@ class SubPixelConvolution(tf.layers.Conv2D):
 		'''Nearest Neighbor Upsample (Checkerboard free) init kernel size
 		'''
 		overlap = kernel_size[1] // strides[1]
+		#print(kernel_size[1], strides[1], overlap)
 		init_kernel = np.zeros(kernel_size, dtype=np.float32)
 		i = kernel_size[0] // 2
 		j = [kernel_size[1] // 2 - 1, kernel_size[1] // 2] if kernel_size[1] % 2 == 0 else [kernel_size[1] // 2]
 		for j_i in j:
-			init_kernel[i, j_i] = 1. / overlap if kernel_size[1] % 2 == 0 else 1.
+			init_kernel[i, j_i] = 1. / max(overlap, 1.) if kernel_size[1] % 2 == 0 else 1.
 
 		init_kernel = np.tile(np.expand_dims(init_kernel, 3), [1, 1, 1, filters])
 
@@ -656,28 +673,26 @@ class ResizeConvolution(tf.layers.Conv2D):
 			data_format='channels_last',
 			name=name, **kwargs)
 
-		self.resize_strides = strides
+		self.resize_layer = NearestNeighborUpsample(strides=strides)
 		self.scope = 'ResizeConvolution' if None else name
 
 	def call(self, inputs):
 		with tf.variable_scope(self.scope) as scope:
 			#Inputs are supposed [batch_size, freq, time_steps, channels]
-			resized = tf.image.resize_images(
-				inputs,
-				size=[inputs.shape[1] * self.resize_strides[0], tf.shape(inputs)[2] * self.resize_strides[1]],
-				method=1) #BILINEAR = 0, NEAREST_NEIGHBOR = 1, BICUBIC = 2, AREA = 3
+			resized = self.resize_layer(inputs)
 
 			return super(ResizeConvolution, self).call(resized)
 
-	def _init_kernel(kernel_size, strides):
+	def _init_kernel(self, kernel_size, strides):
 		'''Nearest Neighbor Upsample (Checkerboard free) init kernel size
 		'''
 		overlap = kernel_size[1] // strides[1]
+		#print(kernel_size[1], strides[1], overlap)
 		init_kernel = np.zeros(kernel_size, dtype=np.float32)
 		i = kernel_size[0] // 2
 		j = [kernel_size[1] // 2 - 1, kernel_size[1] // 2] if kernel_size[1] % 2 == 0 else [kernel_size[1] // 2]
 		for j_i in j:
-			init_kernel[i, j_i] = 1. / overlap if kernel_size[1] % 2 == 0 else 1.
+			init_kernel[i, j_i] = 1. / max(overlap, 1.) if kernel_size[1] % 2 == 0 else 1.
 
 		return init_kernel * (self.NN_scaler)**(1/self.up_layers)
 
@@ -715,7 +730,7 @@ class ConvTranspose1D(tf.layers.Conv2DTranspose):
 		init_kernel = np.arange(filters)
 		init_kernel = np_utils.to_categorical(init_kernel, num_classes=len(init_kernel)).reshape(1, 1, -1, filters).astype(np.float32)
 		init_kernel = np.tile(init_kernel, [kernel_size[0], kernel_size[1], 1, 1])
-		init_kernel = init_kernel / overlap if kernel_size[1] % 2 == 0 else init_kernel
+		init_kernel = init_kernel / max(overlap, 1.) if kernel_size[1] % 2 == 0 else init_kernel
 
 		return init_kernel * (self.NN_scaler)**(1/self.up_layers)
 
@@ -752,7 +767,7 @@ class ConvTranspose2D(tf.layers.Conv2DTranspose):
 		init_kernel = np.zeros(kernel_size, dtype=np.float32)
 		i = kernel_size[0] // 2
 		for j_i in range(kernel_size[1]):
-			init_kernel[i, j_i] = 1. / overlap if kernel_size[1] % 2 == 0 else 1.
+			init_kernel[i, j_i] = 1. / max(overlap, 1.) if kernel_size[1] % 2 == 0 else 1.
 
 		return init_kernel * (self.NN_scaler)**(1/self.up_layers)
 
