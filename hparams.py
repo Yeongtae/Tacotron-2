@@ -77,9 +77,9 @@ hparams = tf.contrib.training.HParams(
 	silence_threshold=2, #silence threshold used for sound trimming for wavenet preprocessing
 
 	#Mel spectrogram
-	n_fft = 1024, #Extra window size is filled with 0 paddings to match this parameter
-	hop_size = 256, #For 22050Hz, 275 ~= 12.5 ms (0.0125 * sample_rate)
-	win_size = 1024, #For 22050Hz, 1100 ~= 50 ms (If None, win_size = n_fft) (0.05 * sample_rate)
+	n_fft = 2048, #Extra window size is filled with 0 paddings to match this parameter
+	hop_size = 275, #For 22050Hz, 275 ~= 12.5 ms (0.0125 * sample_rate)
+	win_size = 1100, #For 22050Hz, 1100 ~= 50 ms (If None, win_size = n_fft) (0.05 * sample_rate)
 	sample_rate = 22050, #22050 Hz (corresponding to ljspeech dataset) (sox --i <filename>)
 	frame_shift_ms = None, #Can replace hop_size parameter. (Recommended: 12.5)
 	magnitude_power = 1.5, #The power of the spectrogram magnitude (1. for energy, 2. for power)
@@ -88,7 +88,7 @@ hparams = tf.contrib.training.HParams(
 	trim_silence = True, #Whether to clip silence in Audio (at beginning and end of audio only, not the middle)
 	trim_fft_size = 2048, #Trimming window size
 	trim_hop_size = 512, #Trimmin hop length
-	trim_top_db = 40, #Trimming db difference from reference db (smaller==harder trim.)
+	trim_top_db = 45, #Trimming db difference from reference db (smaller==harder trim)
 
 	#Mel and Linear spectrograms normalization/scaling and clipping
 	signal_normalization = True, #Whether to normalize mel spectrograms to some predefined range (following below parameters)
@@ -335,7 +335,7 @@ hparams = tf.contrib.training.HParams(
 	wavenet_natural_eval = False, #Whether to use 100% natural eval (to evaluate autoregressivity performance) or with teacher forcing to evaluate overfit and model consistency.
 
 	#Tacotron-2 integration parameters
-	train_with_GTA = True, #Whether to use GTA mels to train WaveNet instead of ground truth mels.
+	train_with_GTA = False, #Whether to use GTA mels to train WaveNet instead of ground truth mels.
 	###########################################################################################################################################
 
 	#Eval/Debug parameters

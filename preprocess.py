@@ -16,6 +16,16 @@ def preprocess(args, input_folders, out_dir, hparams):
 	os.makedirs(linear_dir, exist_ok=True)
 	metadata = preprocessor.build_from_path(hparams, input_folders, mel_dir, linear_dir, wav_dir, args.n_jobs, tqdm=tqdm)
 	write_metadata(metadata, out_dir)
+	write_wavenet_map(metadata, out_dir)
+
+def write_wavenet_map(metadata, out_dir):
+	with open(os.path.join(out_dir, 'map.txt'), 'w', encoding='utf-8') as f:
+		for m in metadata:
+			#audio-1.npy|mel-1.npy|linear-1.npy|50432|197|여기에서 가까운 곳에 서점이 있나요?
+			#training_data/audio/audio-1.npy|training_data/mels/mel-1.npy|tacotron_output/gta/mel-1.npy|<no_g>|이거 그거-
+			audio, mel, _, _, _,text = m
+			str = "training_data/audio/{}|training_data/mels/{}||<no_g>|{}\n".format(audio,mel,text)
+			f.write(str)
 
 def write_metadata(metadata, out_dir):
 	with open(os.path.join(out_dir, 'train.txt'), 'w', encoding='utf-8') as f:
