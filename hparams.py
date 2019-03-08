@@ -62,7 +62,7 @@ hparams = tf.contrib.training.HParams(
 	#		it will also give you an idea about trimming. If silences persist, try reducing trim_top_db slowly. If samples are trimmed mid words, try increasing it.
 	#	6- If audio quality is too metallic or fragmented (or if linear spectrogram plots are showing black silent regions on top), then restart from step 2.
 	num_mels = 80, #Number of mel-spectrogram channels and local conditioning dimensionality
-	num_freq = 1025, # (= n_fft / 2 + 1) only used when adding linear spectrograms post processing network
+	num_freq = 513, # (= n_fft / 2 + 1) only used when adding linear spectrograms post processing network
 	rescale = True, #Whether to rescale audio prior to preprocessing
 	rescaling_max = 0.999, #Rescaling value
 
@@ -77,17 +77,17 @@ hparams = tf.contrib.training.HParams(
 	silence_threshold=2, #silence threshold used for sound trimming for wavenet preprocessing
 
 	#Mel spectrogram
-	n_fft = 2048, #Extra window size is filled with 0 paddings to match this parameter
-	hop_size = 275, #For 22050Hz, 275 ~= 12.5 ms (0.0125 * sample_rate)
-	win_size = 1100, #For 22050Hz, 1100 ~= 50 ms (If None, win_size = n_fft) (0.05 * sample_rate)
+	n_fft = 1024, #Extra window size is filled with 0 paddings to match this parameter
+	hop_size = 256, #For 22050Hz, 275 ~= 12.5 ms (0.0125 * sample_rate)
+	win_size = 1024, #For 22050Hz, 1100 ~= 50 ms (If None, win_size = n_fft) (0.05 * sample_rate)
 	sample_rate = 22050, #22050 Hz (corresponding to ljspeech dataset) (sox --i <filename>)
 	frame_shift_ms = None, #Can replace hop_size parameter. (Recommended: 12.5)
 	magnitude_power = 1.5, #The power of the spectrogram magnitude (1. for energy, 2. for power)
 
 	#M-AILABS (and other datasets) trim params (there parameters are usually correct for any data, but definitely must be tuned for specific speakers)
 	trim_silence = True, #Whether to clip silence in Audio (at beginning and end of audio only, not the middle)
-	trim_fft_size = 2048, #Trimming window size
-	trim_hop_size = 512, #Trimmin hop length
+	trim_fft_size = 1024, #Trimming window size
+	trim_hop_size = 256, #Trimmin hop length
 	trim_top_db = 45, #Trimming db difference from reference db (smaller==harder trim)
 
 	#Mel and Linear spectrograms normalization/scaling and clipping
@@ -219,7 +219,7 @@ hparams = tf.contrib.training.HParams(
 	#Finally, NearestNeighbor is a non-trainable upsampling layer that just expands each frame (or "pixel") to the equivalent hop size. Ignores all upsampling parameters.
 	upsample_type = 'SubPixel', #Type of the upsampling deconvolution. Can be ('1D' or '2D', 'Resize', 'SubPixel' or simple 'NearestNeighbor').
 	upsample_activation = 'Relu', #Activation function used during upsampling. Can be ('LeakyRelu', 'Relu' or None)
-	upsample_scales = [11, 25], #prod(upsample_scales) should be equal to hop_size
+	upsample_scales = [16, 16], #prod(upsample_scales) should be equal to hop_size
 	freq_axis_kernel_size = 3, #Only used for 2D upsampling types. This is the number of requency bands that are spanned at a time for each frame.
 	leaky_alpha = 0.4, #slope of the negative portion of LeakyRelu (LeakyRelu: y=x if x>0 else y=alpha * x)
 	NN_init = True, #Determines whether we want to initialize upsampling kernels/biases in a way to ensure upsample is initialize to Nearest neighbor upsampling. (Mostly for debug)
